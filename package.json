@@ -1,0 +1,12 @@
+{
+  "name": "kyriantech_backend",
+  "version": "1.0.0",
+  "description": "Backend for Kyrian Tech Website",
+  "license": "ISC",
+  "author": "Ella-Labs",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "jest"
+  }
+}
