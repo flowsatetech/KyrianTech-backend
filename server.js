@@ -9,6 +9,7 @@ const fs = require('fs');
 const cookieParser = require('cookie-parser');
 
 // <-- LOCAL EXPORTS IMPORTS -->
+const middlewares = require('./functions/middlewares');
 const authRoutes = require('./functions/routes/auth');
 
 /** SETUP
