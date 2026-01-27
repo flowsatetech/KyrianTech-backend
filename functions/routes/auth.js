@@ -11,6 +11,7 @@ const jwt = require('jsonwebtoken');
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('../middlewares');
 const helpers = require('../helpers');
+const { logger } = require('../helpers');
 const db = require('../db');
 
 
@@ -20,7 +21,7 @@ const db = require('../db');
 const router = express.Router();
 
 /** MAIN AUTH ROUTES */
-router.post('/login', middlewares.signinValidation, async (req, res) => {
+router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation, async (req, res) => {
     try {
         /** Check for validation errors */
         const errors = validationResult(req);
@@ -59,7 +60,7 @@ router.post('/login', middlewares.signinValidation, async (req, res) => {
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, fullName: user.fullName, stamp },
+            { userId: user.userId, email: user.email, username: user.username, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -73,7 +74,7 @@ router.post('/login', middlewares.signinValidation, async (req, res) => {
         res.cookie("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Strict",
+            sameSite: "Lax",
             path: "/",
             maxAge: duration
         });
@@ -81,22 +82,23 @@ router.post('/login', middlewares.signinValidation, async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Signed in successfully',
-            user: {
-                userId: user.userId,
-                fullName: user.fullName,
-                email: user.email,
-                company: user.company
+            data: {
+                user: {
+                    userId: user.userId,
+                    username: user.username,
+                    email: user.email,
+                }
             }
         });
     } catch (e) {
-        helpers.logger('SIGNIN_ERRORS').error(e);
+        logger('SIGNIN').error(e);
         res.status(400).json({
             success: false, message: 'An unknown error occured'
         })
     }
 });
 
-router.post('/signup', middlewares.signupValidation, async (req, res) => {
+router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation, async (req, res) => {
     try {
         /** Check for validation errors */
         const errors = validationResult(req);
@@ -148,7 +150,7 @@ router.post('/signup', middlewares.signupValidation, async (req, res) => {
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, fullName: user.fullName, stamp },
+            { userId: user.userId, email: user.email, username: user.username, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -159,7 +161,7 @@ router.post('/signup', middlewares.signupValidation, async (req, res) => {
         res.cookie("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Strict",
+            sameSite: "Lax",
             path: "/",
             maxAge: duration
         });
@@ -172,7 +174,7 @@ router.post('/signup', middlewares.signupValidation, async (req, res) => {
             }
         });
     } catch (e) {
-        helpers.logger('SIGNUP_ERRORS').error(e);
+        logger('SIGNUP').error(e);
         res.status(400).json({
             success: false, message: 'An unknown error occured'
         })
@@ -184,7 +186,7 @@ router.post('/logout', middlewares.authMiddleware, async (req, res) => {
         res.clearCookie("auth_token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Strict",
+            sameSite: "Lax",
             path: "/"
         });
 
@@ -196,7 +198,7 @@ router.post('/logout', middlewares.authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Logout error:', error);
+        logger('LOGOUT').error(error);
         res.status(500).json({
             success: false,
             message: 'Server error during logout'

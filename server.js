@@ -11,7 +11,9 @@ const cookieParser = require('cookie-parser');
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('./functions/middlewares');
 const authRoutes = require('./functions/routes/auth');
+const userRoutes = require('./functions/routes/user');
 const db = require('./functions/db');
+const { logger } = require('./functions/helpers');
 
 /** SETUP
  * Global variables neccessary to build the server are defined here
@@ -33,18 +35,21 @@ app.use(express.static(path.join(__dirname,'debug','public')));
  * All routers are created here
  */
 const authApi = express.Router();
+const userApi = express.Router();
 
 /** ROUTERS -> HANDLER MAPPING
  * All routers are mapped to their handlers
  */
 authApi.use(authRoutes);
+userApi.use(userRoutes);
 
 /** CONFIGURE & START THE SERVER
  * Mount all routers and configure the server, then start it
  */
 app.use('/api/auth', authApi);
+app.use('/api/user', middlewares.authMiddleware, userApi);
 
 app.listen(PORT, async () => {
     await db.initializeDB();
-    console.log(`Server is running at http://localhost:${PORT}`);
+    logger('SERVER').info(`Server is running at http://localhost:${PORT}`);
 });

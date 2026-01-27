@@ -6,11 +6,12 @@
 
 
 // <-- LOCAL EXPORTS IMPORTS -->
-const authMiddleware = require('./auth');
+const { authMiddleware, userAlreadyAuth } = require('./auth');
 const { signinValidation, signupValidation } = require('./validations');
 
 module.exports = {
     authMiddleware,
+    userAlreadyAuth,
     signinValidation,
     signupValidation
 }
