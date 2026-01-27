@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('./functions/middlewares');
 const authRoutes = require('./functions/routes/auth');
+const db = require('./functions/db');
 
 /** SETUP
  * Global variables neccessary to build the server are defined here
@@ -26,7 +27,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.disable('x-powered-by');
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname,'debug','public')));
 
 /** ROUTERS
  * All routers are created here
@@ -44,5 +45,6 @@ authApi.use(authRoutes);
 app.use('/api/auth', authApi);
 
 app.listen(PORT, async () => {
+    await db.initializeDB();
     console.log(`Server is running at http://localhost:${PORT}`);
 });
