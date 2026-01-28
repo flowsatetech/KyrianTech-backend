@@ -112,8 +112,8 @@ router.patch('/cart/remove', async (req, res) => {
         const userId = req.user.userId;
         let cartData = await db.getCartData(userId);
         const $n = normalizeCartRemoveReq(items,cartData);
-        await db.addCartItems(userId, $n);
-        
+        await db.removeCartItems(userId, $n);
+
         cartData = await db.getCartData(userId);
         const cart = cartData.products ?? [];
 

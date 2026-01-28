@@ -134,6 +134,40 @@ async function getCartData(userId) {
 }
 
 async function addCartItems(userId, items) {
+    try {
+        for (const item of items) {
+            const result = await carts.updateOne(
+                {
+                    userId: userId,
+                    "products.productId": item.productId
+                },
+                {
+                    $inc: { "products.$.count": item.count }
+                }
+            );
+
+            if (result.matchedCount === 0) {
+                await carts.updateOne(
+                    { userId: userId },
+                    {
+                        $push: {
+                            products: {
+                                productId: item.productId,
+                                count: item.count
+                            }
+                        }
+                    }
+                );
+            }
+        }
+        return { success: true };
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
+async function removeCartItems(userId, items) {
     if (!items.length) return { success: true };
 
     try {
@@ -210,6 +244,7 @@ module.exports = {
     getCart,
     getCartData,
     addCartItems,
+    removeCartItems,
     removeCartItem,
     clearCart
 };
