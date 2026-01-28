@@ -206,17 +206,17 @@ async function removeCartItem(userId, productId) {
     try {
         const result = await carts.updateOne(
             { userId: userId },
-            { 
-                $pull: { 
-                    products: { productId: productId } 
-                } 
+            {
+                $pull: {
+                    products: { productId: productId }
+                }
             }
         );
 
-        return { 
+        return {
             success: result.modifiedCount > 0,
             userId: userId,
-            removedProductId: productId 
+            removedProductId: productId
         };
     } catch (err) {
         logger("DB").error(err);
@@ -233,6 +233,29 @@ async function clearCart(userId) {
     }
 }
 
+async function getProduct(productId) {
+    try {
+        const doc = await products.findOne({ productId });
+        return doc;
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
+async function filterProducts(filter,limit) {
+    try {
+        const doc = await products
+            .find(filter)
+            .limit(limit)
+            .toArray();
+        return doc;
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
 module.exports = {
     initializeDB,
 
@@ -246,5 +269,8 @@ module.exports = {
     addCartItems,
     removeCartItems,
     removeCartItem,
-    clearCart
+    clearCart,
+
+    getProduct,
+    filterProducts
 };

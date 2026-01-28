@@ -12,6 +12,8 @@ const cookieParser = require('cookie-parser');
 const middlewares = require('./functions/middlewares');
 const authRoutes = require('./functions/routes/auth');
 const userRoutes = require('./functions/routes/user');
+const productsRoutes = require('./functions/routes/products');
+
 const db = require('./functions/db');
 const { logger } = require('./functions/helpers');
 
@@ -36,18 +38,23 @@ app.use(express.static(path.join(__dirname,'debug','public')));
  */
 const authApi = express.Router();
 const userApi = express.Router();
+const productsApi = express.Router();
 
 /** ROUTERS -> HANDLER MAPPING
  * All routers are mapped to their handlers
  */
 authApi.use(authRoutes);
 userApi.use(userRoutes);
+productsApi.use(productsRoutes);
 
 /** CONFIGURE & START THE SERVER
- * Mount all routers and configure the server, then start it
+ * Mount all routers
+ * Initialize the DB
+ * configure the server, then start it
  */
 app.use('/api/auth', authApi);
 app.use('/api/user', middlewares.authMiddleware, userApi);
+app.use('/api/products', middlewares.authMiddleware, productsApi);
 
 app.listen(PORT, async () => {
     await db.initializeDB();
