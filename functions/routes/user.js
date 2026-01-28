@@ -7,7 +7,7 @@ const express = require('express');
 
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('../middlewares');
-const { logger } = require('../helpers');
+const { logger, validateAddCartData, normalizeCartRemoveReq } = require('../helpers');
 const db = require('../db');
 
 
@@ -70,6 +70,95 @@ router.get('/cart', async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Cart retrieved successfully',
+            data: { cart }
+        });
+    } catch (e) {
+        logger('GET_CART').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+router.patch('/cart/add', async (req, res) => {
+    try {
+        const { items } = req.body;
+        const userId = req.user.userId;
+        const $v = validateAddCartData(items);
+        if(!$v.success) return res.status(400).json({
+            success: false,
+            message: 'An error occured while adding item to cart',
+            data: {
+                error: $v.reason,
+                item: $v.item
+            }
+        }) 
+        await db.addCartItems(userId, items);
+        const cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        res.status(200).json({
+            success: true,
+            message: 'Item added to cart',
+            data: { cart }
+        });
+    } catch (e) {
+        logger('ADD_CART_ITEM').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+router.patch('/cart/remove', async (req, res) => {
+    try {
+        const { items } = req.body;
+        const userId = req.user.userId;
+        let cartData = await db.getCartData(userId);
+        const $n = normalizeCartRemoveReq(items,cartData);
+        await db.addCartItems(userId, $n);
+        
+        cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        res.status(200).json({
+            success: true,
+            message: 'Items removed from cart',
+            data: { cart }
+        });
+    } catch (e) {
+        logger('REMOVE_CART_ITEM').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+router.delete('/cart/:productId', async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const userId = req.user.userId;
+        
+        await db.removeCartItem(userId, productId);
+        const cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        res.status(200).json({
+            success: true,
+            message: 'Item removed from cart successfully',
+            data: { cart }
+        });
+    } catch (e) {
+        logger('GET_CART').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+router.delete('/cart', async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        
+        await db.clearCart(userId);
+        const cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        res.status(200).json({
+            success: true,
+            message: 'Cart has been clared',
             data: { cart }
         });
     } catch (e) {

@@ -4,6 +4,7 @@ const { logger } = require('../helpers');
 let db;
 let users;
 let carts;
+let products;
 
 async function initializeDB() {
     const client = new MongoClient(process.env.MONGO_URI);
@@ -11,17 +12,15 @@ async function initializeDB() {
     db = client.db("kyriandb");
     users = db.collection("users");
     carts = db.collection("carts");
+    products = db.collection("products");
 
-    // Create indexes
+    /** Create indexes */
     await users.createIndex({ email: 1 }, { unique: true });
     await users.createIndex({ userId: 1 }, { unique: true });
+    await products.createIndex({ productId: 1 }, { unique: true });
 
     logger("DB").info("MongoDB initialized successfully");
 }
-
-// ============================================
-// USER FETCH FUNCTIONS
-// ============================================
 
 async function addUser(userData) {
     try {
@@ -134,6 +133,72 @@ async function getCartData(userId) {
     }
 }
 
+async function addCartItems(userId, items) {
+    if (!items.length) return { success: true };
+
+    try {
+        const operations = items.map(item => {
+            if (item.count > 0) {
+                return {
+                    updateOne: {
+                        filter: { userId, "products.productId": item.productId },
+                        update: { $inc: { "products.$.count": item.count } }
+                    }
+                };
+            } else {
+                return {
+                    updateOne: {
+                        filter: { userId, "products.productId": item.productId },
+                        update: { $inc: { "products.$.count": item.count } }
+                    }
+                };
+            }
+        });
+        const result = await carts.bulkWrite(operations);
+        const newItems = items.filter(item => item.count > 0);
+        await carts.updateOne(
+            { userId },
+            { $pull: { products: { count: { $lte: 0 } } } }
+        );
+
+        return { success: true };
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
+async function removeCartItem(userId, productId) {
+    try {
+        const result = await carts.updateOne(
+            { userId: userId },
+            { 
+                $pull: { 
+                    products: { productId: productId } 
+                } 
+            }
+        );
+
+        return { 
+            success: result.modifiedCount > 0,
+            userId: userId,
+            removedProductId: productId 
+        };
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
+async function clearCart(userId) {
+    try {
+        await carts.updateOne({ userId: userId }, { $set: { products: [] } });
+    } catch (e) {
+        logger('DB').error(e);
+        throw e;
+    }
+}
+
 module.exports = {
     initializeDB,
 
@@ -143,5 +208,8 @@ module.exports = {
     updateUser,
 
     getCart,
-    getCartData
+    getCartData,
+    addCartItems,
+    removeCartItem,
+    clearCart
 };
