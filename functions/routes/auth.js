@@ -82,6 +82,14 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
             path: "/",
             maxAge: duration
         });
+        
+        res.cookie("csrf_token", helpers.generateToken(), {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "none",
+            path: "/",
+            maxAge: duration
+        });
 
         res.status(200).json({
             success: true,
@@ -173,6 +181,14 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
             maxAge: duration
         });
 
+        res.cookie("csrf_token", helpers.generateToken(), {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "none",
+            path: "/",
+            maxAge: duration
+        });
+
         res.status(201).json({
             success: true,
             message: 'Account created successfully',
@@ -258,6 +274,14 @@ router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
             path: "/",
             maxAge: duration
         });
+        
+        res.cookie("csrf_token", helpers.generateToken(), {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "none",
+            path: "/",
+            maxAge: duration
+        });
 
         res.status(200).json({
             success: true,
@@ -283,6 +307,13 @@ router.post('/logout', middlewares.authMiddleware, async (req, res) => {
     try {
         res.clearCookie("auth_token", {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "none",
+            path: "/"
+        });
+        
+        res.clearCookie("csrf_token", {
+            httpOnly: false,
             secure: process.env.NODE_ENV === 'production',
             sameSite: "none",
             path: "/"
