@@ -16,6 +16,7 @@ const db = require('../db');
  * Global variables referenced in this file are defined here
  */
 const router = express.Router();
+const product_fetch_limit = parseInt(process.env.PRODUCT_FETCH_LIMIT) || 30;
 
 /** MAIN AUTH ROUTES */
 router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
@@ -64,7 +65,7 @@ router.post('/filter', middlewares.authMiddleware, async (req, res) => {
             if (maxPrice) query.price.$lte = parseFloat(maxPrice);
         }
         
-        const fetchLimit = Math.min(parseInt(limit) || 20, 20);
+        const fetchLimit = Math.min(parseInt(limit) || product_fetch_limit, product_fetch_limit);
         const products = await db.filterProducts(query, fetchLimit);
             
         res.status(200).json({

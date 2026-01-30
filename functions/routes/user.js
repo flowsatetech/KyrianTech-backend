@@ -37,7 +37,8 @@ router.get('/profile', async (req, res) => {
             data: {
                 profile: {
                     userId: user.userId,
-                    username: user.username,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
                     email: user.email,
                     cart_count
                 }

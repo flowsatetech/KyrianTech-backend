@@ -7,6 +7,9 @@ const express = require('express');
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+
 
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('../middlewares');
@@ -18,6 +21,7 @@ const db = require('../db');
 /** SETUP
  * Global variables referenced in this file are defined here
  */
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const router = express.Router();
 
 /** MAIN AUTH ROUTES */
@@ -60,7 +64,7 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, username: user.username, stamp },
+            { userId: user.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -74,7 +78,7 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
         res.cookie("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Lax",
+            sameSite: "none",
             path: "/",
             maxAge: duration
         });
@@ -85,7 +89,8 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
             data: {
                 user: {
                     userId: user.userId,
-                    username: user.username,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
                     email: user.email,
                 }
             }
@@ -112,10 +117,10 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
             });
         }
 
-        const { username, email, password, rememberMe } = req.body;
+        const { firstName, lastName, phone, email, password, rememberMe } = req.body;
 
         /** Extra precaution to validate fields */
-        const empty = helpers.isEmpty({ username, email, password });
+        const empty = helpers.isEmpty({ email, password, firstName, lastName, phone });
         if (empty) return res.status(400).json({
             success: false,
             message: `${empty} is required but is empty`
@@ -137,7 +142,9 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
 
         const user = {
             userId,
-            username,
+            firstName,
+            lastName,
+            phone,
             email,
             password: hashedPassword,
             createdAt: Date.now(),
@@ -150,7 +157,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, username: user.username, stamp },
+            { userId: user.userId, email: user.email, firstName, lastName, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -161,7 +168,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
         res.cookie("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Lax",
+            sameSite: "none",
             path: "/",
             maxAge: duration
         });
@@ -170,7 +177,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
             success: true,
             message: 'Account created successfully',
             data: {
-                user: { userId, username, email }
+                user: { userId, firstName, lastName, email }
             }
         });
     } catch (e) {
@@ -181,12 +188,103 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
     }
 });
 
+router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
+    try {
+        const { token, rememberMe } = req.body;
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Google token is required' });
+        }
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const {
+            email,
+            given_name: firstName,
+            family_name: lastName,
+            sub: googleId,
+            phone_number: phone
+        } = payload;
+        
+        const finalFirstName = firstName || payload.name?.split(' ')[0] || '';
+        const finalLastName = lastName || payload.name?.split(' ').slice(1).join(' ') || '';
+
+        let user = await db.getUserByEmail(email);
+        const stamp = `${helpers.generateToken()}_stamp_${Date.now()}`;
+        if (!user) {
+            const userId = helpers.generateToken();
+            user = {
+                userId,
+                firstName: finalFirstName,
+                lastName: finalLastName,
+                phone: phone || '',
+                email,
+                password: await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10), // Random password for security
+                createdAt: Date.now(),
+                lastLogin: Date.now(),
+                authProvider: 'google',
+                googleId: googleId,
+                stamp
+            };
+            await db.addUser(user);
+        } else {
+            const payload = {
+                lastLogin: Date.now()
+            }
+            if (!user.googleId) {
+                payload.googleId = googleId
+            }
+            await db.updateUser(user.userId, payload);
+        }
+
+        /** PREPARE THE COOKIE */
+        const ms = (days) => days * 24 * 60 * 60 * 1000;
+        const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
+
+        const jwtToken = jwt.sign(
+            { userId: user.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, stamp },
+            process.env.JWT_SECRET,
+            { expiresIn: duration / 1000 }
+        );
+
+        await db.updateUser(user.userId, { stamp });
+
+        res.cookie("auth_token", jwtToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "none",
+            path: "/",
+            maxAge: duration
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Google Sign-In successful',
+            user: {
+                userId: user.userId,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email
+            }
+        });
+
+    } catch (error) {
+        console.error('Google Auth Verify Error:', error.message);
+        res.status(401).json({
+            success: false,
+            message: 'Invalid Google token'
+        });
+    }
+});
+
 router.post('/logout', middlewares.authMiddleware, async (req, res) => {
     try {
         res.clearCookie("auth_token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: "Lax",
+            sameSite: "none",
             path: "/"
         });
 
