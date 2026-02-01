@@ -243,13 +243,21 @@ async function getProduct(productId) {
     }
 }
 
-async function filterProducts(filter,limit) {
+async function filterProducts(filter, limit, skip) {
     try {
-        const doc = await products
-            .find(filter)
-            .limit(limit)
-            .toArray();
-        return doc;
+        const [items, totalCount] = await Promise.all([
+            products.find(filter)
+                .sort({ _id: -1 })
+                .skip(skip)
+                .limit(limit)
+                .toArray(),
+            products.countDocuments(filter)
+        ]);
+
+        return {
+            products: items,
+            total: totalCount
+        };
     } catch (err) {
         logger("DB").error(err);
         throw err;

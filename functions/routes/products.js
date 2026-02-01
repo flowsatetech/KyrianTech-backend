@@ -48,31 +48,39 @@ router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
 
 router.post('/filter', middlewares.authMiddleware, async (req, res) => {
     try {
-        const { name, brand, minPrice, maxPrice, category, limit } = req.body;
+        const { name, brand, minPrice, maxPrice, category, limit, page = 1 } = req.body;
+        if(typeof page !== 'number' || page < 1 || !Number.isInteger(page)) return res.status(400).json({
+            success: false, message: 'Page number must be a positive integer'
+        })
         const query = {};
-        if (name) {
-            query.name = name;
-        }
-        if (brand) {
-            query.brand = brand;
-        }
-        if (category) {
-            query.category = category;
-        }
+
+        if (name) query.name = { $regex: name, $options: 'i' };
+        if (brand) query.brand = brand;
+        if (category) query.category = category;
+        
         if (minPrice || maxPrice) {
             query.price = {};
             if (minPrice) query.price.$gte = parseFloat(minPrice);
             if (maxPrice) query.price.$lte = parseFloat(maxPrice);
         }
         
+        const currentPage = Math.max(1, parseInt(page) || 1);
         const fetchLimit = Math.min(parseInt(limit) || product_fetch_limit, product_fetch_limit);
-        const products = await db.filterProducts(query, fetchLimit);
+        const skip = (currentPage - 1) * fetchLimit;
+        
+        const { products, total } = await db.filterProducts(query, fetchLimit, skip);
             
         res.status(200).json({
             success: true,
-            message: `Found ${products.length} products matching criteria`,
+            message: `Found ${products.length} products`,
             data: {
-                products: products.map(({ _id, ...rest }) => rest) // Exclude internal Mongo ID
+                products: products.map(({ _id, ...rest }) => rest),
+                pagination: {
+                    totalResults: total,
+                    totalPages: Math.ceil(total / fetchLimit),
+                    currentPage: currentPage,
+                    pageSize: products.length
+                }
             }
         });
 
