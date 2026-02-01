@@ -15,9 +15,10 @@ const db = require('../db');
  * Global variables referenced in this file are defined here
  */
 const router = express.Router();
+const { profile } = middlewares.rateLimiters;
 
 /** MAIN USER ROUTES */
-router.get('/profile', async (req, res) => {
+router.get('/profile', profile, async (req, res) => {
     try {
         const user = req.db_user;
         const cart = await db.getCart(req.user.userId);
@@ -52,7 +53,42 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-router.get('/cart', async (req, res) => {
+router.post('/profile/update', profile, async (req, res) => {
+    try {
+        const user = req.db_user;
+        const cart = await db.getCart(req.user.userId);
+        const cart_count = cart.products.length || 0;
+
+        /** Extra validation if user exists in the db */
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid User'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Fetch profile success',
+            data: {
+                profile: {
+                    userId: user.userId,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                    cart_count
+                }
+            }
+        });
+    } catch (e) {
+        logger('SIGNIN').error(e);
+        res.status(400).json({
+            success: false, message: 'An unknown error occured'
+        })
+    }
+});
+
+router.get('/cart', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const userId = req.user.userId;
 
@@ -79,7 +115,7 @@ router.get('/cart', async (req, res) => {
     }
 });
 
-router.patch('/cart/add', async (req, res) => {
+router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const { items } = req.body;
         const userId = req.user.userId;
@@ -107,7 +143,7 @@ router.patch('/cart/add', async (req, res) => {
     }
 });
 
-router.patch('/cart/remove', async (req, res) => {
+router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const { items } = req.body;
         const userId = req.user.userId;
@@ -129,7 +165,7 @@ router.patch('/cart/remove', async (req, res) => {
     }
 });
 
-router.delete('/cart/:productId', async (req, res) => {
+router.delete('/cart/:productId', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const { productId } = req.params;
         const userId = req.user.userId;
@@ -149,7 +185,7 @@ router.delete('/cart/:productId', async (req, res) => {
     }
 });
 
-router.delete('/cart', async (req, res) => {
+router.delete('/cart', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const userId = req.user.userId;
         

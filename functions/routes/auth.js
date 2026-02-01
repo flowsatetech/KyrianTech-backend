@@ -23,9 +23,11 @@ const db = require('../db');
  */
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const router = express.Router();
+const { authLoginIp, authLogin, signup, googleAuth, logout } = middlewares.rateLimiters;
+const { userAlreadyAuth, authMiddleware, signinValidation, signupValidation } = middlewares;
 
 /** MAIN AUTH ROUTES */
-router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation, async (req, res) => {
+router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation, async (req, res) => {
     try {
         /** Check for validation errors */
         const errors = validationResult(req);
@@ -77,7 +79,7 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
 
         res.cookie("auth_token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -85,7 +87,7 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
         
         res.cookie("csrf_token", helpers.generateToken(), {
             httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -111,7 +113,7 @@ router.post('/login', middlewares.userAlreadyAuth, middlewares.signinValidation,
     }
 });
 
-router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation, async (req, res) => {
+router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, res) => {
     try {
         /** Check for validation errors */
         const errors = validationResult(req);
@@ -175,7 +177,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
         /** Return Cookie and Success message */
         res.cookie("auth_token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -183,7 +185,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
 
         res.cookie("csrf_token", helpers.generateToken(), {
             httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -204,7 +206,7 @@ router.post('/signup', middlewares.userAlreadyAuth, middlewares.signupValidation
     }
 });
 
-router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
+router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
     try {
         const { token, rememberMe } = req.body;
         if (!token) {
@@ -269,7 +271,7 @@ router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
 
         res.cookie("auth_token", jwtToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -277,7 +279,7 @@ router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
         
         res.cookie("csrf_token", helpers.generateToken(), {
             httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
@@ -303,18 +305,18 @@ router.post('/google', middlewares.userAlreadyAuth, async (req, res) => {
     }
 });
 
-router.post('/logout', middlewares.authMiddleware, async (req, res) => {
+router.post('/logout', authMiddleware, logout, async (req, res) => {
     try {
         res.clearCookie("auth_token", {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/"
         });
         
         res.clearCookie("csrf_token", {
             httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: "none",
             path: "/"
         });

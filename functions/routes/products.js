@@ -18,7 +18,7 @@ const db = require('../db');
 const router = express.Router();
 const product_fetch_limit = parseInt(process.env.PRODUCT_FETCH_LIMIT) || 30;
 
-/** MAIN AUTH ROUTES */
+/** MAIN PRODUCTS ROUTES */
 router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
     try {
         const { productId } = req.params;

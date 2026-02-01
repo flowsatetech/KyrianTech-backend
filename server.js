@@ -1,3 +1,8 @@
+/** INJECT ENV VARS
+ * Load environment variables from .env file into process.env
+ */
+require('dotenv').config();
+
 /** IMPORT
  * All libraries / local exports / packages are imported here
  */
@@ -23,7 +28,6 @@ const { generateToken, logger } = require('./functions/helpers');
 /** SETUP
  * Global variables neccessary to build the server are defined here
  */
-require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const corsOpts = {
