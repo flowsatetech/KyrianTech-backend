@@ -9,6 +9,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+const { z } = require('zod');
 
 
 // <-- LOCAL EXPORTS IMPORTS -->
@@ -41,7 +42,19 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             });
         }
 
-        const { email, password, rememberMe } = req.body;
+        const validData = z.object({
+            email: z.email(),
+            password: z.string().min(8),
+            rememberMe: z.boolean().optional()
+        }).safeParse(req.body);
+
+        if(!validData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Couldn\'t complete login request'
+            })
+        }
+        const { email, password, rememberMe } = validData.data;
 
         /** Check if user doesn't exists in the db / password not matching */
         const user = await db.getUserByEmail(email);
@@ -84,7 +97,7 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             path: "/",
             maxAge: duration
         });
-        
+
         res.cookie("csrf_token", helpers.generateToken(), {
             httpOnly: false,
             secure: true,
@@ -126,8 +139,23 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
                 }
             });
         }
+        
+        const validData = z.object({
+            firstName: z.string().min(1),
+            lastName: z.string().min(1),
+            phone: z.string(),
+            email: z.email(),
+            password: z.string().min(8),
+            rememberMe: z.boolean().optional()
+        }).safeParse(req.body);
 
-        const { firstName, lastName, phone, email, password, rememberMe } = req.body;
+        if(!validData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Couldn\'t complete signup request'
+            })
+        }
+        const { firstName, lastName, phone, email, password, rememberMe } = validData.data;
 
         /** Extra precaution to validate fields */
         const empty = helpers.isEmpty({ email, password, firstName, lastName, phone });
@@ -225,7 +253,7 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
             sub: googleId,
             phone_number: phone
         } = payload;
-        
+
         const finalFirstName = firstName || payload.name?.split(' ')[0] || '';
         const finalLastName = lastName || payload.name?.split(' ').slice(1).join(' ') || '';
 
@@ -276,7 +304,7 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
             path: "/",
             maxAge: duration
         });
-        
+
         res.cookie("csrf_token", helpers.generateToken(), {
             httpOnly: false,
             secure: true,
@@ -313,7 +341,7 @@ router.post('/logout', authMiddleware, logout, async (req, res) => {
             sameSite: "none",
             path: "/"
         });
-        
+
         res.clearCookie("csrf_token", {
             httpOnly: false,
             secure: true,
