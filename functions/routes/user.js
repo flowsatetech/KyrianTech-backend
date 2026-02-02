@@ -54,6 +54,59 @@ router.get('/profile', profile, async (req, res) => {
     }
 });
 
+router.post('/profile/shipping_address', profile, async (req, res) => {
+    try {
+        const user = req.db_user;
+        res.status(200).json({
+            success: true,
+            message: 'Fetch Shipping address success',
+            data: {
+                profile: {
+                    userId: user.userId,
+                    shipping_address: user.shipping_address
+                }
+            }
+        });
+    } catch (e) {
+        logger('PROFILE_SHIPPING_ADDRESS').error(e);
+        res.status(400).json({
+            success: false, message: 'An unknown error occured'
+        })
+    }
+});
+
+router.post('/profile/update', profile, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const user = req.db_user;
+        
+        const validData = z.object({
+            firstName: z.string().min(1).optional(),
+            lastName: z.string().min(1).optional(),
+            phone: z.string().optional(),
+            shipping_address: z.string().optional()
+        }).safeParse(req.body);
+
+        if(!validData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid Update data'
+            })
+        }
+        
+        await db.updateUser(userId, validData.data)
+        res.status(200).json({
+            success: true,
+            message: 'Profile update successfully'
+        });
+    } catch (e) {
+        logger('PROFILE_UPDATE').error(e);
+        res.status(400).json({
+            success: false, message: 'An unknown error occured'
+        })
+    }
+});
+
 router.get('/cart', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const userId = req.user.userId;
