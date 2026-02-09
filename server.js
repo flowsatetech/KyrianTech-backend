@@ -43,10 +43,6 @@ app.use(cookieParser());
 app.use((req, res, next) => {
     const publicRoutes = ['/api/auth/login', '/api/auth/signup', '/api/auth/google'];
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || publicRoutes.some(route => req.path.startsWith(route))) {
-        if (!req.cookies['csrf_token']) {
-            const newToken = generateToken(32);
-            res.cookie("csrf_token", newToken, { secure: true, sameSite: "none", path: "/" });
-        }
         return next();
     }
     const cookieToken = req.cookies['csrf_token'];

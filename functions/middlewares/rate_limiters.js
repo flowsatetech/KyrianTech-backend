@@ -26,7 +26,8 @@ const authLogin = rateLimit({
     max: 5,
     store: createStore(),
     keyGenerator: (req) => {
-        const email = req.body.email || ''; 
+        console.log(req.body);
+        const email = req.body?.email || ''; 
         return `login_${email}`;
     },
     message: { success: false, message: 'Too many login attempts. Please try again later.' }

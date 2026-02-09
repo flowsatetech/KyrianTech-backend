@@ -90,16 +90,20 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             stamp
         });
 
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", token, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -115,6 +119,7 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
                     firstName: user.firstName,
                     lastName: user.lastName,
                     email: user.email,
+                    csrf_token
                 }
             }
         });
@@ -203,16 +208,20 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
         await db.addUser(user); // Add user to database
 
         /** Return Cookie and Success message */
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", token, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -223,7 +232,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
             success: true,
             message: 'Account created successfully',
             data: {
-                user: { userId, firstName, lastName, email }
+                user: { userId, firstName, lastName, email, csrf_token }
             }
         });
     } catch (e) {
@@ -297,16 +306,20 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
 
         await db.updateUser(user.userId, { stamp });
 
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", jwtToken, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -320,7 +333,8 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
                 userId: user.userId,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                email: user.email
+                email: user.email,
+                csrf_token
             }
         });
 
@@ -337,13 +351,15 @@ router.post('/logout', authMiddleware, logout, async (req, res) => {
     try {
         res.clearCookie("auth_token", {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/"
         });
 
         res.clearCookie("csrf_token", {
-            httpOnly: false,
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/"
