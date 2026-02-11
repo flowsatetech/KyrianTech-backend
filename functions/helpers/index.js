@@ -1,5 +1,5 @@
 const logger = require('./logger')
-const { generateToken, isEmpty, handleAuthFailure } = require('./utils')
+const { generateToken, isEmpty, handleAuthFailure, slugify } = require('./utils')
 const { validateAddCartData, normalizeCartRemoveReq } = require('./validators')
 
-module.exports = { logger, generateToken, isEmpty, handleAuthFailure, validateAddCartData, normalizeCartRemoveReq }
+module.exports = { logger, generateToken, isEmpty, handleAuthFailure, validateAddCartData, normalizeCartRemoveReq, slugify }

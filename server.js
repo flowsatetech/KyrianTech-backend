@@ -41,7 +41,7 @@ const corsOpts = {
 app.use(cors(corsOpts));
 app.use(cookieParser());
 app.use((req, res, next) => {
-    const publicRoutes = ['/api/auth/login', '/api/auth/signup', '/api/auth/google'];
+    const publicRoutes = ['/api/auth/login', '/api/auth/signup', '/api/auth/google', '/api/products/filter'];
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || publicRoutes.some(route => req.path.startsWith(route))) {
         return next();
     }

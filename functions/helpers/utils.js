@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 function generateToken(length = 16) {
-    return crypto.randomBytes(16).toString('hex');
+    return crypto.randomBytes(length).toString('hex');
 }
 
 const isEmpty = (inputObj) => {
@@ -34,4 +34,13 @@ const handleAuthFailure = (req, res, isApi, message) => {
     return res.redirect(loginUrl);
 };
 
-module.exports = { generateToken, isEmpty, handleAuthFailure }
+function slugify(str) {
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") 
+    .replace(/\s+/g, "-") 
+    .replace(/-+/g, "-");
+}
+
+module.exports = { generateToken, isEmpty, handleAuthFailure, slugify }

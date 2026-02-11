@@ -233,6 +233,15 @@ async function clearCart(userId) {
     }
 }
 
+async function addProducts(productsToAdd) {
+    try {
+        await products.insertMany(productsToAdd, { ordered: false });
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
 async function getProduct(productId) {
     try {
         const doc = await products.findOne({ productId });
@@ -279,6 +288,7 @@ module.exports = {
     removeCartItem,
     clearCart,
 
+    addProducts,
     getProduct,
     filterProducts
 };

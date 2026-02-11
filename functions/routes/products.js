@@ -9,7 +9,7 @@ const { z } = require('zod');
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('../middlewares');
 const helpers = require('../helpers');
-const { logger } = require('../helpers');
+const { slugify, logger } = require('../helpers');
 const db = require('../db');
 
 
@@ -20,7 +20,7 @@ const router = express.Router();
 const product_fetch_limit = parseInt(process.env.PRODUCT_FETCH_LIMIT) || 30;
 
 /** MAIN PRODUCTS ROUTES */
-router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
+router.get('/:productId/info', async (req, res) => {
     try {
         const validData = z.object({
             productId: z.string().min(1)
@@ -33,7 +33,7 @@ router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
             })
         }
         const { productId } = validData.data;
-        
+
         const $d = await db.getProduct(productId);
         if (!$d) return res.status(400).json({
             success: false,
@@ -58,7 +58,7 @@ router.get('/:productId/info', middlewares.authMiddleware, async (req, res) => {
     }
 });
 
-router.post('/filter', middlewares.authMiddleware, async (req, res) => {
+router.post('/filter', async (req, res) => {
     try {
         const validData = z.object({
             name: z.string().optional(),
@@ -76,9 +76,9 @@ router.post('/filter', middlewares.authMiddleware, async (req, res) => {
                 message: 'Invalid request data'
             })
         }
-        
+
         const { name, brand, minPrice, maxPrice, category, limit, page = 1 } = validData.data;
-        
+
         const query = {};
 
         if (name) query.name = { $regex: name, $options: 'i' };
@@ -116,6 +116,56 @@ router.post('/filter', middlewares.authMiddleware, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'An error occurred while filtering products'
+        });
+    }
+});
+
+router.put('/add', middlewares.adminOnly, async (req, res) => {
+    try {
+        const validData = z.array(
+            z.object({
+                name: z.string().min(1),
+                brand: z.string().min(1),
+                category: z.string().min(1),
+                price: z.number().min(0),
+                tags: z.array(z.string().min(1)).default([]),
+                stock: z.number().int().min(0),
+                rating: z.number().min(0).max(5).default(0),
+            }).strict()
+        ).safeParse(req.body);
+
+        if (!validData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid request data',
+                data: {
+                    errors: validData.error.flatten()
+                }
+            })
+        }
+
+        const finalData = validData.data.map(product => ({
+            ...product,
+            productId: helpers.generateToken(),
+            createdAt: new Date(),
+            slug: `${slugify(product.name)}-${slugify(product.category)}-${helpers.generateToken(6)}`
+        }))
+
+        await db.addProducts(finalData);
+
+        res.status(201).json({
+            success: true,
+            message: 'Product added successfully',
+            data: {
+                products: finalData.map(({ _id, ...final}) => final)
+            }
+        });
+
+    } catch (e) {
+        logger('ADD_PRODUCTS').error(e);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while adding products'
         });
     }
 });
