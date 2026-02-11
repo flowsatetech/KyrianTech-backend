@@ -39,8 +39,7 @@ router.get('/profile', profile, async (req, res) => {
             data: {
                 profile: {
                     userId: user.userId,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    fullName: user.fullName,
                     email: user.email,
                     cart_count
                 }
@@ -81,9 +80,7 @@ router.post('/profile/update', profile, async (req, res) => {
         const user = req.db_user;
         
         const validData = z.object({
-            firstName: z.string().min(1).optional(),
-            lastName: z.string().min(1).optional(),
-            phone: z.string().optional(),
+            fullName: z.string().min(1).optional(),
             shipping_address: z.string().optional()
         }).safeParse(req.body);
 
