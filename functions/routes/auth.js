@@ -326,7 +326,7 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Google Auth Verify Error:', error.message);
+        logger('GOOGLE_AUTH').error('Google Auth Verify Error:', error.message);
         res.status(401).json({
             success: false,
             message: 'Invalid Google token'

@@ -26,7 +26,6 @@ const authLogin = rateLimit({
     max: 5,
     store: createStore(),
     keyGenerator: (req) => {
-        console.log(req.body);
         const email = req.body?.email || ''; 
         return `login_${email}`;
     },

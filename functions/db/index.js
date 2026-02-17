@@ -5,6 +5,7 @@ let db;
 let users;
 let carts;
 let products;
+let productImages;
 
 async function initializeDB() {
     const client = new MongoClient(process.env.MONGO_URI);
@@ -13,11 +14,13 @@ async function initializeDB() {
     users = db.collection("users");
     carts = db.collection("carts");
     products = db.collection("products");
+    productImages = db.collection("productImages");
 
     /** Create indexes */
     await users.createIndex({ email: 1 }, { unique: true });
     await users.createIndex({ userId: 1 }, { unique: true });
     await products.createIndex({ productId: 1 }, { unique: true });
+    await productImages.createIndex({ productId: 1 }, { unique: true });
 
     logger("DB").info("MongoDB initialized successfully");
 }
@@ -242,6 +245,17 @@ async function addProducts(productsToAdd) {
     }
 }
 
+async function updateProductImages(productId, link) {
+    try {
+        let flat = link.map(l => l.url);
+        await products.updateOne({ productId }, { $set: { images: flat } });
+        await productImages.updateOne({ productId }, { $set: { images: link } }, { upsert: true });
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
 async function getProduct(productId) {
     try {
         const doc = await products.findOne({ productId });
@@ -254,14 +268,21 @@ async function getProduct(productId) {
 
 async function filterProducts(filter, limit, skip) {
     try {
-        const [items, totalCount] = await Promise.all([
-            products.find(filter)
+        const isDefault = !filter || Object.keys(filter).length === 0;
+        let items;
+        const totalCount = await products.countDocuments(filter || {});
+
+        if (isDefault) {
+            items = await products.aggregate([
+                { $sample: { size: limit } }
+            ]).toArray();
+        } else {
+            items = await products.find(filter)
                 .sort({ _id: -1 })
                 .skip(skip)
                 .limit(limit)
-                .toArray(),
-            products.countDocuments(filter)
-        ]);
+                .toArray();
+        }
 
         return {
             products: items,
@@ -273,22 +294,39 @@ async function filterProducts(filter, limit, skip) {
     }
 }
 
+async function sortProducts(sort, limit) {
+    try {
+        const topProducts = await products
+            .find({})
+            .sort(sort)
+            .limit(limit)
+            .toArray();
+
+        return topProducts;
+    } catch (err) {
+        console.error("Error fetching top rated products:", err);
+        throw err;
+    }
+}
+
 module.exports = {
-    initializeDB,
+        initializeDB,
 
-    addUser,
-    getUserByEmail,
-    getUserById,
-    updateUser,
+        addUser,
+        getUserByEmail,
+        getUserById,
+        updateUser,
 
-    getCart,
-    getCartData,
-    addCartItems,
-    removeCartItems,
-    removeCartItem,
-    clearCart,
+        getCart,
+        updateProductImages,
+        getCartData,
+        addCartItems,
+        removeCartItems,
+        removeCartItem,
+        clearCart,
 
-    addProducts,
-    getProduct,
-    filterProducts
-};
+        addProducts,
+        getProduct,
+        filterProducts,
+        sortProducts
+    };

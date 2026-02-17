@@ -41,8 +41,23 @@ const corsOpts = {
 app.use(cors(corsOpts));
 app.use(cookieParser());
 app.use((req, res, next) => {
-    const publicRoutes = ['/api/auth/login', '/api/auth/signup', '/api/auth/google', '/api/products/filter'];
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || publicRoutes.some(route => req.path.startsWith(route))) {
+    const publicRoutes = [
+        '/api/auth/login',
+        '/api/auth/signup',
+        '/api/auth/google',
+        '/api/products/filter',
+        /^\/api\/[^/]+\/info$/
+    ];
+
+    if (
+        ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ||
+        publicRoutes.some(route => {
+            if (route instanceof RegExp) {
+                return route.test(req.path);
+            }
+            return req.path.startsWith(route);
+        })
+    ) {
         return next();
     }
     const cookieToken = req.cookies['csrf_token'];
@@ -102,7 +117,7 @@ miscApi.use(miscRoutes);
  */
 app.use('/api/auth', authApi);
 app.use('/api/user', middlewares.authMiddleware, userApi);
-app.use('/api/products', middlewares.authMiddleware, productsApi);
+app.use('/api/products', productsApi);
 app.use('/misc', miscApi);
 
 app.listen(PORT, async () => {
