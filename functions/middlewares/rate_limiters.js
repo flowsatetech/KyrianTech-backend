@@ -73,6 +73,18 @@ const logout = rateLimit({
     message: { success: false, message: 'Too many logout attempts.' }
 });
 
+const products = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: { success: false, message: 'Too many health checks.' }
+});
+
+const fourzerofour = rateLimit({
+    windowMs: 5 * 60 * 60 * 1000,
+    max: 3,
+    message: { success: false, message: 'Too many health checks.' }
+});
+
 const health = rateLimit({
     windowMs: 60 * 1000,
     max: 10,
@@ -83,9 +95,12 @@ module.exports = {
     signup,
     authLogin,
     authLoginIp,
+    products,
     health,
     profile,
     cart,
     googleAuth,
-    logout
+    logout,
+
+    fourzerofour
 };

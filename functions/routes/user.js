@@ -184,7 +184,7 @@ router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => 
                     count: z.number().int().min(1).max(99)
                 })
             ).min(1)
-        });
+        }).safeParse(req.body);
 
         if (!validData.success) {
             return res.status(400).json({

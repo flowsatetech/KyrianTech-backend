@@ -101,6 +101,7 @@ const authApi = express.Router();
 const userApi = express.Router();
 const productsApi = express.Router();
 const miscApi = express.Router();
+const handler404 = express.Router();
 
 /** ROUTERS -> HANDLER MAPPING
  * All routers are mapped to their handlers
@@ -109,6 +110,7 @@ authApi.use(authRoutes);
 userApi.use(userRoutes);
 productsApi.use(productsRoutes);
 miscApi.use(miscRoutes);
+handler404.use(require('./functions/routes/404'));
 
 /** CONFIGURE & START THE SERVER
  * Mount all routers
@@ -119,6 +121,7 @@ app.use('/api/auth', authApi);
 app.use('/api/user', middlewares.authMiddleware, userApi);
 app.use('/api/products', productsApi);
 app.use('/misc', miscApi);
+app.use(handler404);
 
 app.listen(PORT, async () => {
     await db.initializeDB();

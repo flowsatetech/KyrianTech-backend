@@ -6,7 +6,7 @@
 const express = require('express');
 
 // <-- LOCAL EXPORTS IMPORTS -->
-const { adminOnly, authMiddleware } = require('../middlewares');
+const { adminOnly, authMiddleware, rateLimiters } = require('../middlewares');
 const redis = require('../middlewares/utils/redis_client');
 const { logger } = require('../helpers');
 
@@ -16,7 +16,7 @@ const { logger } = require('../helpers');
 const router = express.Router();
 
 /** MAIN USER ROUTES */
-router.get('/health', (req, res) => {
+router.get('/health', rateLimiters.health, (req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),

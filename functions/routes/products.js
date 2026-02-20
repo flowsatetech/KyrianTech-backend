@@ -49,7 +49,7 @@ const uploadMiddleware = (req, res, next) => {
 };
 
 /** MAIN PRODUCTS ROUTES */
-router.get('/:productId/info', async (req, res) => {
+router.get('/:productId/info', middlewares.rateLimiters.products, async (req, res) => {
     try {
         const validData = z.object({
             productId: z.string().min(1)
@@ -87,7 +87,7 @@ router.get('/:productId/info', async (req, res) => {
     }
 });
 
-router.post('/filter', async (req, res) => {
+router.post('/filter', middlewares.rateLimiters.products, async (req, res) => {
     try {
         const validData = z.object({
             name: z.string().optional(),
