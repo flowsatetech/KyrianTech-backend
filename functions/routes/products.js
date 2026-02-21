@@ -123,7 +123,7 @@ router.post('/filter', middlewares.rateLimiters.products, async (req, res) => {
 
         const currentPage = Math.max(1, parseInt(page) || 1);
         const fetchLimit = Math.min(parseInt(limit) || product_fetch_limit, product_fetch_limit);
-        const skip = (currentPage - 1) * fetchLimit;    
+        const skip = (currentPage - 1) * fetchLimit;
 
         if (sort) {
             let sortValue = {};
@@ -183,7 +183,7 @@ router.patch('/:productId/images', middlewares.authMiddleware, middlewares.admin
         }
         const slug = product.slug;
         if (!req.files || req.files.length === 0) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 message: 'No image file uploaded'
             })
@@ -193,7 +193,7 @@ router.patch('/:productId/images', middlewares.authMiddleware, middlewares.admin
         await db.updateProductImages(productId, uploaded);
         const { _id, ...$product } = await db.getProduct(productId);
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             message: 'Image added successfully',
             data: {
@@ -254,6 +254,77 @@ router.post('/add', middlewares.authMiddleware, middlewares.adminOnly, async (re
 
     } catch (e) {
         logger('ADD_PRODUCTS').error(e);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while adding products'
+        });
+    }
+});
+
+router.patch('/:productId/update', middlewares.authMiddleware, middlewares.adminOnly, async (req, res) => {
+    try {
+        let product = await db.getProduct(req.params.productId);
+        if(!product) return res.status(400).json({
+            success: false,
+            message: 'Product not found'
+        })
+        const validData = z.object({
+            name: z.string().min(1).optional(),
+            description: z.string().min(1).optional(),
+            brand: z.string().min(1).optional(),
+            category: z.string().min(1).optional(),
+            price: z.number().min(0).optional(),
+            tags: z.array(z.string().min(1)).default([]).optional(),
+            stock: z.number().int().min(0).optional(),
+            rating: z.number().min(0).max(5).default(0).optional(),
+            specs: z.object({}).loose().optional()
+        }).safeParse(req.body);
+
+        if (!validData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid request data',
+                data: {
+                    errors: validData.error.flatten()
+                }
+            })
+        }
+
+        await db.updateProduct(req.params.productId, validData.data);
+        product = await db.getProduct(req.params.productId);
+
+
+        res.status(201).json({
+            success: true,
+            message: 'Product updated successfully',
+            data: {
+                product
+            }
+        });
+
+    } catch (e) {
+        logger('UPDATE_PRODUCT').error(e);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while adding products'
+        });
+    }
+});
+
+router.delete('/:productId', middlewares.authMiddleware, middlewares.adminOnly, async (req, res) => {
+    try {
+        let product = await db.getProduct(req.params.productId);
+        if(!product) return res.status(400).json({
+            success: false,
+            message: 'Product not found'
+        })
+
+        await db.deleteProduct(req.params.productId);
+
+        res.status(204).end();
+
+    } catch (e) {
+        logger('DELETE_PRODUCT').error(e);
         res.status(500).json({
             success: false,
             message: 'An error occurred while adding products'

@@ -1,6 +1,7 @@
 const { MongoClient } = require('mongodb');
 const { logger } = require('../helpers');
 
+let client;
 let db;
 let users;
 let carts;
@@ -8,7 +9,7 @@ let products;
 let productImages;
 
 async function initializeDB() {
-    const client = new MongoClient(process.env.MONGO_URI);
+    client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
     db = client.db("kyriandb");
     users = db.collection("users");
@@ -138,31 +139,30 @@ async function getCartData(userId) {
 
 async function addCartItems(userId, items) {
     try {
-        for (const item of items) {
-            const result = await carts.updateOne(
-                {
-                    userId: userId,
-                    "products.productId": item.productId
-                },
-                {
-                    $inc: { "products.$.count": item.count }
-                }
-            );
+        const operations = [];
 
-            if (result.matchedCount === 0) {
-                await carts.updateOne(
-                    { userId: userId },
-                    {
-                        $push: {
-                            products: {
-                                productId: item.productId,
-                                count: item.count
-                            }
-                        }
+        for (const item of items) {
+            operations.push({
+                updateOne: {
+                    filter: { userId, "products.productId": item.productId },
+                    update: { $inc: { "products.$.count": item.count } }
+                }
+            });
+            
+            operations.push({
+                updateOne: {
+                    filter: { userId, "products.productId": { $ne: item.productId } },
+                    update: { 
+                        $push: { 
+                            products: { productId: item.productId, count: item.count } 
+                        } 
                     }
-                );
-            }
+                }
+            });
         }
+        
+        await carts.bulkWrite(operations, { ordered: true });
+
         return { success: true };
     } catch (err) {
         logger("DB").error(err);
@@ -245,6 +245,43 @@ async function addProducts(productsToAdd) {
     }
 }
 
+async function updateProduct(productId, updateData) {
+    try {
+        await products.updateOne(
+            { productId },
+            { $set: updateData }
+        );
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
+async function deleteProduct(productId) {
+    const session = client.startSession();
+
+    try {
+        let result;
+        await session.withTransaction(async () => {
+            result = await products.deleteOne({ productId }, { session });
+            await carts.updateMany(
+                { "products.productId": productId },
+                { $pull: { products: { productId: productId } } },
+                { session }
+            );
+            
+            await productImages.deleteOne({ productId }, { session });
+        });
+        return { success: result.deletedCount > 0 };
+
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    } finally {
+        await session.endSession();
+    }
+}
+
 async function updateProductImages(productId, link) {
     try {
         let flat = link.map(l => l.url);
@@ -309,6 +346,20 @@ async function sortProducts(sort, limit) {
     }
 }
 
+/** UTILITY */
+async function checkProductsExist(productIds) {
+    try {
+        const uniqueIds = [...new Set(productIds)];
+        const existingCount = await products.countDocuments({
+            productId: { $in: uniqueIds }
+        });
+        return existingCount === uniqueIds.length;
+    } catch (err) {
+        logger("DB").error(err);
+        throw err;
+    }
+}
+
 module.exports = {
         initializeDB,
 
@@ -318,6 +369,8 @@ module.exports = {
         updateUser,
 
         getCart,
+        updateProduct,
+        deleteProduct,
         updateProductImages,
         getCartData,
         addCartItems,
@@ -328,5 +381,7 @@ module.exports = {
         addProducts,
         getProduct,
         filterProducts,
-        sortProducts
+        sortProducts,
+
+        checkProductsExist
     };
