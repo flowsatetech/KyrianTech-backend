@@ -30,8 +30,18 @@ const { generateToken, logger } = require('./functions/helpers');
  */
 const app = express();
 const PORT = process.env.PORT || 3000;
+const allowedOrigins = JSON.parse(process.env.APP_BASE_URL || []);
+console.log(allowedOrigins);
+
 const corsOpts = {
-    origin: process.env.APP_BASE_URL,
+    origin: (origin, callback) => {
+        console.log(origin);
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 };
 
