@@ -39,8 +39,7 @@ router.get('/profile', profile, async (req, res) => {
             data: {
                 profile: {
                     userId: user.userId,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    fullName: user.fullName,
                     email: user.email,
                     cart_count
                 }
@@ -79,21 +78,19 @@ router.post('/profile/update', profile, async (req, res) => {
     try {
         const userId = req.user.userId;
         const user = req.db_user;
-        
+
         const validData = z.object({
-            firstName: z.string().min(1).optional(),
-            lastName: z.string().min(1).optional(),
-            phone: z.string().optional(),
+            fullName: z.string().min(1).optional(),
             shipping_address: z.string().optional()
         }).safeParse(req.body);
 
-        if(!validData.success) {
+        if (!validData.success) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid Update data'
             })
         }
-        
+
         await db.updateUser(userId, validData.data)
         res.status(200).json({
             success: true,
@@ -134,6 +131,47 @@ router.get('/cart', middlewares.rateLimiters.cart, async (req, res) => {
     }
 });
 
+router.get('/cart/summary', middlewares.rateLimiters.cart, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        /** Fetch Cart Data */
+        const cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        if (!cart.length) {
+            return res.status(200).json({
+                success: true,
+                message: 'Cart is empty',
+                data: {
+                    subtotal: 0,
+                    discount: 0,
+                    total: 0
+                }
+            });
+        }
+
+        let subtotal = 0;
+        const discount = 0;
+        for (const item of cart) {
+            subtotal += item.price * item.count;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Summary retrieved successfully',
+            data: {
+                subtotal,
+                discount,
+                total: subtotal - discount
+            }
+        });
+    } catch (e) {
+        logger('GET_CART_SUMMARY').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const validData = z.object({
@@ -162,7 +200,13 @@ router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
                 error: $v.reason,
                 item: $v.item
             }
-        })
+        });
+        const productsExists = await db.checkProductsExist(items.map(x => x.productId));
+        if(!productsExists) return res.status(400).json({
+            success: false,
+            message: 'One or more of the productIds are invalid'
+        });
+
         await db.addCartItems(userId, items);
         const cartData = await db.getCartData(userId);
         const cart = cartData.products ?? [];
@@ -187,7 +231,7 @@ router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => 
                     count: z.number().int().min(1).max(99)
                 })
             ).min(1)
-        });
+        }).safeParse(req.body);
 
         if (!validData.success) {
             return res.status(400).json({
@@ -197,6 +241,13 @@ router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => 
         }
 
         const { items } = validData.data;
+        
+        const productsExists = await db.checkProductsExist(items.map(x => x.productId));
+        if(!productsExists) return res.status(400).json({
+            success: false,
+            message: 'One or more of the productIds are invalid'
+        });
+
         const userId = req.user.userId;
         let cartData = await db.getCartData(userId);
         const $n = normalizeCartRemoveReq(items, cartData);

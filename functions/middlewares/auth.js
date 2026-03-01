@@ -8,7 +8,9 @@
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET;
 const { handleAuthFailure, logger } = require('../helpers')
-const db = require('../db')
+const db = require('../db');
+const { id } = require('zod/locales');
+const { success } = require('zod');
 
 /** MIDDLEWARE LOGIC */
 const authMiddleware = async (req, res, next) => {
@@ -50,7 +52,7 @@ const authMiddleware = async (req, res, next) => {
 
         /** Handle expired or malformed tokens */ 
         res.clearCookie("auth_token");
-        return handleAuthFailure(req, res, isApiRequest, 'Invalid session.');
+        return handleAuthFailure(req, res, true, 'Invalid session.');
     }
 };
 
@@ -78,4 +80,14 @@ const userAlreadyAuth = async (req, res, next) => {
     next();
 };
 
-module.exports = { authMiddleware, userAlreadyAuth }
+const adminOnly = async (req, res, next) => {
+    if (!req.db_user || req.db_user.role !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Admins only.'
+        })
+    }
+    next();
+}
+
+module.exports = { authMiddleware, userAlreadyAuth, adminOnly }

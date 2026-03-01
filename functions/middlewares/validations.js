@@ -9,10 +9,8 @@ const { body } = require('express-validator');
 
 
 const signupValidation = [
-    body('firstName').isString().trim().isLength({ min: 1 }).withMessage('First Name must be at least 1 characters'),
-    body('lastName').isString().trim().isLength({ min: 1 }).withMessage('Last Name must be at least 1 characters'),
+    body('fullName').isString().trim().isLength({ min: 1 }).withMessage('Full Name must be at least 1 character'),
     body('email').isEmail().trim().toLowerCase().withMessage('Invalid email address'),
-    body('phone').trim().isMobilePhone('any').withMessage('Invalid phone number'), // en-NG
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain uppercase, lowercase, and number')
 ];

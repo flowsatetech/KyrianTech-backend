@@ -30,8 +30,16 @@ const { generateToken, logger } = require('./functions/helpers');
  */
 const app = express();
 const PORT = process.env.PORT || 3000;
+const allowedOrigins = JSON.parse(process.env.APP_BASE_URL || []);
+
 const corsOpts = {
-    origin: process.env.APP_BASE_URL,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 };
 
@@ -41,17 +49,28 @@ const corsOpts = {
 app.use(cors(corsOpts));
 app.use(cookieParser());
 app.use((req, res, next) => {
-    const publicRoutes = ['/api/auth/login', '/api/auth/signup', '/api/auth/google'];
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || publicRoutes.some(route => req.path.startsWith(route))) {
-        if (!req.cookies['csrf_token']) {
-            const newToken = generateToken(32);
-            res.cookie("csrf_token", newToken, { secure: true, sameSite: "none", path: "/" });
-        }
+    const publicRoutes = [
+        '/api/auth/login',
+        '/api/auth/signup',
+        '/api/auth/google',
+        '/api/products/filter',
+        /^\/api\/[^/]+\/info$/
+    ];
+
+    if (
+        ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ||
+        publicRoutes.some(route => {
+            if (route instanceof RegExp) {
+                return route.test(req.path);
+            }
+            return req.path.startsWith(route);
+        })
+    ) {
         return next();
     }
     const cookieToken = req.cookies['csrf_token'];
     const headerToken = req.headers['x-csrf-token'];
-    if (cookieToken === headerToken) {
+    if (cookieToken && headerToken && cookieToken === headerToken) {
         next();
     } else {
         logger('SECURITY').warn(`Blocked potential CSRF from: ${req.headers.origin}`);
@@ -80,16 +99,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.disable('x-powered-by');
-app.use(express.static(path.join(__dirname, 'debug', 'public')));
 app.set('trust proxy', 1);
 
 /** ROUTERS
  * All routers are created here
  */
-const authApi = express.Router();
-const userApi = express.Router();
-const productsApi = express.Router();
-const miscApi = express.Router();
+const [authApi, userApi, productsApi, miscApi, handler404] = Array.from({ length: 5 }, () => express.Router());
 
 /** ROUTERS -> HANDLER MAPPING
  * All routers are mapped to their handlers
@@ -98,6 +113,7 @@ authApi.use(authRoutes);
 userApi.use(userRoutes);
 productsApi.use(productsRoutes);
 miscApi.use(miscRoutes);
+handler404.use(require('./functions/routes/404'));
 
 /** CONFIGURE & START THE SERVER
  * Mount all routers
@@ -106,8 +122,9 @@ miscApi.use(miscRoutes);
  */
 app.use('/api/auth', authApi);
 app.use('/api/user', middlewares.authMiddleware, userApi);
-app.use('/api/products', middlewares.authMiddleware, productsApi);
+app.use('/api/products', productsApi);
 app.use('/misc', miscApi);
+app.use(handler404);
 
 app.listen(PORT, async () => {
     await db.initializeDB();

@@ -79,7 +79,7 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, stamp },
+            { userId: user.userId, email: user.email, fullName: user.fullName, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -90,16 +90,20 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             stamp
         });
 
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", token, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -112,9 +116,9 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             data: {
                 user: {
                     userId: user.userId,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    fullName: user.fullName,
                     email: user.email,
+                    csrf_token
                 }
             }
         });
@@ -141,9 +145,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
         }
         
         const validData = z.object({
-            firstName: z.string().min(1),
-            lastName: z.string().min(1),
-            phone: z.string(),
+            fullName: z.string().min(1),
             email: z.email(),
             password: z.string().min(8),
             rememberMe: z.boolean().optional()
@@ -155,10 +157,10 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
                 message: 'Couldn\'t complete signup request'
             })
         }
-        const { firstName, lastName, phone, email, password, rememberMe } = validData.data;
+        const { fullName, email, password, rememberMe } = validData.data;
 
         /** Extra precaution to validate fields */
-        const empty = helpers.isEmpty({ email, password, firstName, lastName, phone });
+        const empty = helpers.isEmpty({ email, password, fullName });
         if (empty) return res.status(400).json({
             success: false,
             message: `${empty} is required but is empty`
@@ -180,9 +182,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
 
         const user = {
             userId,
-            firstName,
-            lastName,
-            phone,
+            fullName,
             email,
             password: hashedPassword,
             createdAt: Date.now(),
@@ -195,7 +195,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
         const ms = (days) => days * 24 * 60 * 60 * 1000;
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
         const token = jwt.sign(
-            { userId: user.userId, email: user.email, firstName, lastName, stamp },
+            { userId: user.userId, email: user.email, fullName: user.fullName, stamp },
             process.env.JWT_SECRET,
             { expiresIn: Math.floor(duration / 1000) }
         );
@@ -203,16 +203,20 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
         await db.addUser(user); // Add user to database
 
         /** Return Cookie and Success message */
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", token, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -223,7 +227,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
             success: true,
             message: 'Account created successfully',
             data: {
-                user: { userId, firstName, lastName, email }
+                user: { userId, fullName, email, csrf_token }
             }
         });
     } catch (e) {
@@ -248,24 +252,17 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
         const payload = ticket.getPayload();
         const {
             email,
-            given_name: firstName,
-            family_name: lastName,
-            sub: googleId,
-            phone_number: phone
+            name: fullName,
+            sub: googleId
         } = payload;
-
-        const finalFirstName = firstName || payload.name?.split(' ')[0] || '';
-        const finalLastName = lastName || payload.name?.split(' ').slice(1).join(' ') || '';
-
+        
         let user = await db.getUserByEmail(email);
         const stamp = `${helpers.generateToken()}_stamp_${Date.now()}`;
         if (!user) {
             const userId = helpers.generateToken();
             user = {
                 userId,
-                firstName: finalFirstName,
-                lastName: finalLastName,
-                phone: phone || '',
+                fullName,
                 email,
                 password: await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10), // Random password for security
                 createdAt: Date.now(),
@@ -290,23 +287,27 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
         const duration = rememberMe ? ms(30) : 60 * 60 * 1000;
 
         const jwtToken = jwt.sign(
-            { userId: user.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, stamp },
+            { userId: user.userId, email: user.email, fullName: user.fullName, stamp },
             process.env.JWT_SECRET,
             { expiresIn: duration / 1000 }
         );
 
         await db.updateUser(user.userId, { stamp });
 
+        const csrf_token = helpers.generateToken(32);
+
         res.cookie("auth_token", jwtToken, {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
             maxAge: duration
         });
 
-        res.cookie("csrf_token", helpers.generateToken(), {
-            httpOnly: false,
+        res.cookie("csrf_token", csrf_token, {
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/",
@@ -318,14 +319,14 @@ router.post('/google', googleAuth, userAlreadyAuth, async (req, res) => {
             message: 'Google Sign-In successful',
             user: {
                 userId: user.userId,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email
+                fullName: user.fullName,
+                email: user.email,
+                csrf_token
             }
         });
 
     } catch (error) {
-        console.error('Google Auth Verify Error:', error.message);
+        logger('GOOGLE_AUTH').error('Google Auth Verify Error:', error.message);
         res.status(401).json({
             success: false,
             message: 'Invalid Google token'
@@ -337,13 +338,15 @@ router.post('/logout', authMiddleware, logout, async (req, res) => {
     try {
         res.clearCookie("auth_token", {
             httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/"
         });
 
         res.clearCookie("csrf_token", {
-            httpOnly: false,
+            httpOnly: true,
+            partitioned: true,
             secure: true,
             sameSite: "none",
             path: "/"
