@@ -52,7 +52,7 @@ const authMiddleware = async (req, res, next) => {
 
         /** Handle expired or malformed tokens */ 
         res.clearCookie("auth_token");
-        return handleAuthFailure(req, res, isApiRequest, 'Invalid session.');
+        return handleAuthFailure(req, res, true, 'Invalid session.');
     }
 };
 

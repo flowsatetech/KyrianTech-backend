@@ -31,11 +31,9 @@ const { generateToken, logger } = require('./functions/helpers');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const allowedOrigins = JSON.parse(process.env.APP_BASE_URL || []);
-console.log(allowedOrigins);
 
 const corsOpts = {
     origin: (origin, callback) => {
-        console.log(origin);
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -72,7 +70,7 @@ app.use((req, res, next) => {
     }
     const cookieToken = req.cookies['csrf_token'];
     const headerToken = req.headers['x-csrf-token'];
-    if (cookieToken === headerToken) {
+    if (cookieToken && headerToken && cookieToken === headerToken) {
         next();
     } else {
         logger('SECURITY').warn(`Blocked potential CSRF from: ${req.headers.origin}`);
@@ -101,17 +99,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.disable('x-powered-by');
-app.use(express.static(path.join(__dirname, 'debug', 'public')));
 app.set('trust proxy', 1);
 
 /** ROUTERS
  * All routers are created here
  */
-const authApi = express.Router();
-const userApi = express.Router();
-const productsApi = express.Router();
-const miscApi = express.Router();
-const handler404 = express.Router();
+const [authApi, userApi, productsApi, miscApi, handler404] = Array.from({ length: 5 }, () => express.Router());
 
 /** ROUTERS -> HANDLER MAPPING
  * All routers are mapped to their handlers

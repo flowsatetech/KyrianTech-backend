@@ -23,7 +23,11 @@ async function uploadImage(files, slug) {
         for (const file of files) {
             const uploadResult = await cloudinary.uploader
                 .upload(
-                    `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, { slug }
+                    `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, 
+                    { 
+                        public_id: slug,
+                        folder: 'kyriantech'
+                    }
                 )
 
             result.push(uploadResult);
