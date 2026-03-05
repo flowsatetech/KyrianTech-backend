@@ -316,6 +316,24 @@ router.delete('/cart', middlewares.rateLimiters.cart, async (req, res) => {
     }
 });
 
+router.post('/checkout', middlewares.rateLimiters.cart, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        /** Fetch Cart Data */
+        const cartData = await db.getCartData(userId);
+        const cart = cartData.products ?? [];
+
+        res.status(200).json({
+            success: true,
+            message: 'Cart retrieved successfully',
+            data: { cart }
+        });
+    } catch (e) {
+        logger('CHECKOUT').error(e);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
 /** EXPORTS
  * Export Routes for use in routers
