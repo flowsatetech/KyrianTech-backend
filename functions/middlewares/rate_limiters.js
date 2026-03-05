@@ -76,13 +76,13 @@ const logout = rateLimit({
 const products = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
-    message: { success: false, message: 'Too many health checks.' }
+    message: { success: false, message: 'Too many requests.' }
 });
 
 const fourzerofour = rateLimit({
     windowMs: 5 * 60 * 60 * 1000,
     max: 3,
-    message: { success: false, message: 'Too many health checks.' }
+    message: { success: false, message: 'You hit 404 too many times.' }
 });
 
 const health = rateLimit({

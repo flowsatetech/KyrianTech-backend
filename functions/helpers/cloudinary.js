@@ -25,7 +25,7 @@ async function uploadImage(files, slug) {
                 .upload(
                     `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, 
                     { 
-                        public_id: slug,
+                        public_id: `${slug}_m_${Date.now()}`,
                         folder: 'kyriantech'
                     }
                 )
