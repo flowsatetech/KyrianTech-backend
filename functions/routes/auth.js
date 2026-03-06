@@ -97,7 +97,7 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/",
             maxAge: duration
         });
@@ -106,7 +106,7 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/",
             maxAge: duration
         });
@@ -220,7 +220,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/",
             maxAge: duration
         });
@@ -229,7 +229,7 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/",
             maxAge: duration
         });
@@ -255,7 +255,7 @@ router.post('/logout', authMiddleware, logout, async (req, res) => {
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/"
         });
 
@@ -263,7 +263,7 @@ router.post('/logout', authMiddleware, logout, async (req, res) => {
             httpOnly: true,
             partitioned: true,
             secure: true,
-            sameSite: "none",
+            sameSite: "lax",
             path: "/"
         });
 

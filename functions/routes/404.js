@@ -20,7 +20,7 @@ router.get('/', rateLimiters.fourzerofour, (req, res) => {
     status: 'ok',
     uptime: process.uptime(),
     timestamp: Date.now(),
-    message: 'Are you lost? Our site is at https://kyrian-tech-frontend.vercel.app/'
+    message: `Are you lost? Our site is at ${JSON.parse(process.env.APP_BASE_URL)[0]}`
   });
 });
 
@@ -28,7 +28,7 @@ router.use(rateLimiters.fourzerofour, (req, res) => {
   logger('404').info(req.originalUrl);
   res.status(404).json({
     status: 'error',
-    message: 'Are you lost? Our site is at https://kyrian-tech-frontend.vercel.app/',
+    message: `Are you lost? Our site is at ${JSON.parse(process.env.APP_BASE_URL)[0]}`,
     path: req.originalUrl
   });
 });
