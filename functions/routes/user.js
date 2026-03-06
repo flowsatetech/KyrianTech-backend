@@ -5,12 +5,12 @@
 // <-- PACKAGE IMPORTS -->
 const express = require('express');
 const { z } = require('zod');
+const { isValidPhoneNumber } = require('libphonenumber-js');
 
 // <-- LOCAL EXPORTS IMPORTS -->
 const middlewares = require('../middlewares');
 const { logger, validateAddCartData, normalizeCartRemoveReq } = require('../helpers');
 const db = require('../db');
-
 
 /** SETUP
  * Global variables referenced in this file are defined here
@@ -25,14 +25,6 @@ router.get('/profile', profile, async (req, res) => {
         const cart = await db.getCart(req.user.userId);
         const cart_count = cart.products.length || 0;
 
-        /** Extra validation if user exists in the db */
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid User'
-            });
-        }
-
         res.status(200).json({
             success: true,
             message: 'Fetch profile success',
@@ -41,33 +33,14 @@ router.get('/profile', profile, async (req, res) => {
                     userId: user.userId,
                     fullName: user.fullName,
                     email: user.email,
+                    phoneNumber: user.phoneNumber,
+                    shipping_address: user.shipping_address,
                     cart_count
                 }
             }
         });
     } catch (e) {
         logger('SIGNIN').error(e);
-        res.status(400).json({
-            success: false, message: 'An unknown error occured'
-        })
-    }
-});
-
-router.post('/profile/shipping_address', profile, async (req, res) => {
-    try {
-        const user = req.db_user;
-        res.status(200).json({
-            success: true,
-            message: 'Fetch Shipping address success',
-            data: {
-                profile: {
-                    userId: user.userId,
-                    shipping_address: user.shipping_address
-                }
-            }
-        });
-    } catch (e) {
-        logger('PROFILE_SHIPPING_ADDRESS').error(e);
         res.status(400).json({
             success: false, message: 'An unknown error occured'
         })
@@ -81,13 +54,19 @@ router.post('/profile/update', profile, async (req, res) => {
 
         const validData = z.object({
             fullName: z.string().min(1).optional(),
-            shipping_address: z.string().optional()
+            shipping_address: z.string().optional(),
+            phoneNumber: z.string().refine((val) => isValidPhoneNumber(val), {
+                message: "Please enter a valid international phone number",
+            }).optional()
         }).safeParse(req.body);
 
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid Update data'
+                message: 'Invalid Update data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
@@ -186,7 +165,10 @@ router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid request data'
+                message: 'Invalid request data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
@@ -202,7 +184,7 @@ router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
             }
         });
         const productsExists = await db.checkProductsExist(items.map(x => x.productId));
-        if(!productsExists) return res.status(400).json({
+        if (!productsExists) return res.status(400).json({
             success: false,
             message: 'One or more of the productIds are invalid'
         });
@@ -236,14 +218,17 @@ router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => 
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid request data'
+                message: 'Invalid request data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
         const { items } = validData.data;
-        
+
         const productsExists = await db.checkProductsExist(items.map(x => x.productId));
-        if(!productsExists) return res.status(400).json({
+        if (!productsExists) return res.status(400).json({
             success: false,
             message: 'One or more of the productIds are invalid'
         });
@@ -276,7 +261,10 @@ router.delete('/cart/:productId', middlewares.rateLimiters.cart, async (req, res
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Couldn\'t get product details'
+                message: 'Couldn\'t get product details',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
         const { productId } = validData.data;
@@ -319,6 +307,7 @@ router.delete('/cart', middlewares.rateLimiters.cart, async (req, res) => {
 router.post('/checkout', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const userId = req.user.userId;
+        const user = req.db_user;
 
         /** Fetch Cart Data */
         const cartData = await db.getCartData(userId);
@@ -326,9 +315,16 @@ router.post('/checkout', middlewares.rateLimiters.cart, async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Cart retrieved successfully',
-            data: { cart }
+            message: 'Checkout successfully',
+            data: {
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                shipping_address: user.shipping_address,
+                cart
+            }
         });
+        await db.clearCart(userId);
     } catch (e) {
         logger('CHECKOUT').error(e);
         res.status(500).json({ success: false, message: 'Server error' });

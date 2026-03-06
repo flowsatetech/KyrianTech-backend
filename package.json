@@ -22,6 +22,7 @@
     "google-auth-library": "^10.5.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.12.38",
     "mongodb": "^7.0.0",
     "multer": "^2.0.2",
     "rate-limit-redis": "^4.3.1",
