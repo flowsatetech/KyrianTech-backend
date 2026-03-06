@@ -63,7 +63,10 @@ router.post('/profile/update', profile, async (req, res) => {
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid Update data'
+                message: 'Invalid Update data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
@@ -162,7 +165,10 @@ router.patch('/cart/add', middlewares.rateLimiters.cart, async (req, res) => {
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid request data'
+                message: 'Invalid request data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
@@ -212,7 +218,10 @@ router.patch('/cart/remove', middlewares.rateLimiters.cart, async (req, res) => 
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid request data'
+                message: 'Invalid request data',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
@@ -252,7 +261,10 @@ router.delete('/cart/:productId', middlewares.rateLimiters.cart, async (req, res
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Couldn\'t get product details'
+                message: 'Couldn\'t get product details',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
         const { productId } = validData.data;

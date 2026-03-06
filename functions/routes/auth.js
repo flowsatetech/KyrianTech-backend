@@ -49,7 +49,10 @@ router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation,
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Couldn\'t complete login request'
+                message: 'Couldn\'t complete login request',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
         const { email, password, rememberMe } = validData.data;
@@ -157,7 +160,10 @@ router.post('/signup', signup, userAlreadyAuth, signupValidation, async (req, re
         if (!validData.success) {
             return res.status(400).json({
                 success: false,
-                message: 'Couldn\'t complete signup request'
+                message: 'Couldn\'t complete signup request',
+                errors: validData.error.issues.map(issue => {
+                    return `${issue.path[0]}: ${issue.message}`;
+                })
             })
         }
 
