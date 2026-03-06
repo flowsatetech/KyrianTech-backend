@@ -17,6 +17,11 @@ const isEmpty = (inputObj) => {
   return null;
 };
 
+function isValidPhone(input) {
+  const clean = input.replace(/[^\d+]/g, '');
+  return /^\+?[1-9]\d{6,14}$/.test(clean);
+}
+
 const handleAuthFailure = (req, res, isApi, message) => {
     if (isApi) {
         return res.status(401).json({ success: false, message });
@@ -43,4 +48,4 @@ function slugify(str) {
     .replace(/-+/g, "-");
 }
 
-module.exports = { generateToken, isEmpty, handleAuthFailure, slugify }
+module.exports = { generateToken, isEmpty, handleAuthFailure, slugify, isValidPhone }
