@@ -307,6 +307,7 @@ router.delete('/cart', middlewares.rateLimiters.cart, async (req, res) => {
 router.post('/checkout', middlewares.rateLimiters.cart, async (req, res) => {
     try {
         const userId = req.user.userId;
+        const user = req.db_user;
 
         /** Fetch Cart Data */
         const cartData = await db.getCartData(userId);
@@ -314,9 +315,16 @@ router.post('/checkout', middlewares.rateLimiters.cart, async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Cart retrieved successfully',
-            data: { cart }
+            message: 'Checkout successfully',
+            data: {
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                shipping_address: user.shipping_address,
+                cart
+            }
         });
+        await db.clearCart(userId);
     } catch (e) {
         logger('CHECKOUT').error(e);
         res.status(500).json({ success: false, message: 'Server error' });
