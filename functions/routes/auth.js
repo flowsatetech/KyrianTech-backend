@@ -24,6 +24,7 @@ const redisClient = require('../middlewares/utils/redis_client');
 const router = express.Router();
 const { authLoginIp, authLogin, signup, logout, forgot_password } = middlewares.rateLimiters;
 const { userAlreadyAuth, authMiddleware, signinValidation, signupValidation } = middlewares;
+const FIRST_APP_URI = JSON.parse(process.env.APP_BASE_URL)[0];
 
 /** MAIN AUTH ROUTES */
 router.post('/login', authLoginIp, authLogin, userAlreadyAuth, signinValidation, async (req, res) => {
@@ -277,7 +278,7 @@ router.post('/forgot_password', forgot_password, userAlreadyAuth, async (req, re
         
         await redisClient.setEx(`magic_link:${token}`, 900, user.userId);
         
-        const magic_link = `${process.env.SERVER_BASE_URL}/api/auth/magic_link/${token}`;
+        const magic_link = `${FIRST_APP_URI}/auth/magic_link/${token}`;
 
         await mailer.send(email, "Let's get you back into your account", fillTemplate('magic_link', {
 			email,
@@ -296,7 +297,7 @@ router.post('/forgot_password', forgot_password, userAlreadyAuth, async (req, re
     }
 });
 
-router.get('/magic_link/:x_token', async (req, res) => {
+router.post('/magic_link/:x_token', async (req, res) => {
     const { x_token } = req.params;
     const rememberMe = true;
     
@@ -351,7 +352,7 @@ router.get('/magic_link/:x_token', async (req, res) => {
             maxAge: duration
         });
         
-        res.redirect(JSON.parse(process.env.APP_BASE_URL)[0]);
+        res.redirect(FIRST_APP_URI);
     } catch (error) {
         console.error('Magic link verification error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
