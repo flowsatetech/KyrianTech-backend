@@ -54,6 +54,7 @@ app.use((req, res, next) => {
         '/api/auth/signup',
         '/api/auth/google',
         '/api/products/filter',
+        '/api/auth/forgot_password',
         /^\/api\/[^/]+\/info$/
     ];
 

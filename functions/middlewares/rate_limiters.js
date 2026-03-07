@@ -44,6 +44,16 @@ const authLoginIp = rateLimit({
     message: { success: false, message: 'Too many login attempts. Please try again later.' }
 });
 
+const forgot_password = rateLimit({
+    windowMs: 6 * 60 * 60 * 1000,
+    max: 2,
+    store: createStore('rl:forgotPassword:'),
+    keyGenerator: (req) => {
+        return `login_${ipKeyGenerator(req.ip)}`;
+    },
+    message: { success: false, message: 'Too many password reset attempts. Please try again later.' }
+});
+
 const profile = rateLimit({
     windowMs: 30 * 60 * 1000,
     max: 20,
@@ -119,6 +129,7 @@ module.exports = {
     cart,
     logout,
     reach_out,
+    forgot_password,
 
     fourzerofour
 };

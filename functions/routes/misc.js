@@ -44,7 +44,7 @@ router.post('/reach_out', rateLimiters.reach_out, async (req, res) => {
 			})
 		}
 		const { email, name, message } = validData.data;
-		await mailer.send(process.env.ADMIN_EMAIL_ADDRESS, message, fillTemplate('contact_form', {
+		await mailer.send(process.env.ADMIN_EMAIL_ADDRESS, "New Query on Kyrian Tech Contact Form", fillTemplate('contact_form', {
 			name,
 			email,
 			message
