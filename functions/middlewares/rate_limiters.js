@@ -2,6 +2,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const redisClient = require('./utils/redis_client');
+const { logger } = require('../helpers');
 
 const createStore = (prefixName) => new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
@@ -88,7 +89,16 @@ const fourzerofour = rateLimit({
     max: 3,
     store: createStore('rl:404:'),
     keyGenerator,
-    message: { success: false, message: 'You hit 404 too many times.' }
+    message: { success: false, message: 'Suspicious activity detected. You have been blocked.' },
+    
+    handler: async (req, res, next, options) => {
+        try {
+            await redisClient.setEx(`blacklist_ip_${ipKeyGenerator(req.ip)}`, 18000, 'true');
+        } catch (err) {
+            logger('BLACKLIST').error('Redis blacklist error:', err);
+        }
+        res.status(options.statusCode || 429).json(options.message);
+    }
 });
 
 const health = rateLimit({

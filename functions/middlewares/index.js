@@ -9,6 +9,7 @@
 const rateLimiters = require('./rate_limiters');
 const { authMiddleware, userAlreadyAuth, adminOnly } = require('./auth');
 const { signinValidation, signupValidation } = require('./validations');
+const { checkBlacklist } = require('./blacklist');
 
 module.exports = {
     authMiddleware,
@@ -16,5 +17,6 @@ module.exports = {
     adminOnly,
     signinValidation,
     signupValidation,
-    rateLimiters
+    rateLimiters,
+    checkBlacklist
 }
