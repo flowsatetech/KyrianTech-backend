@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Contact Request</title>
+</head>
+<body style="font-family: 'Courier New', Courier, monospace; background-color: #fdfdfd; color: #1a1a1a; line-height: 1.6; margin: 0; padding: 20px;">
+
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border: 1px solid #ccc;">
+        
+        <h2 style="font-size: 1.25rem; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-top: 0;">New Contact Form Submission</h2>
+        
+        <p style="margin-bottom: 20px;">Hello Admin,</p>
+        <p style="margin-bottom: 30px;">Someone wants to contact you from the KyrianTech website. Here are their details:</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+            <tr>
+                <td style="padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                    <strong style="display: block; font-size: 0.9em; color: #666; text-transform: uppercase;">Name</strong>
+                    <span style="font-size: 1.1em;">{{name}}</span>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 15px 0 10px 0; border-bottom: 1px solid #eee;">
+                    <strong style="display: block; font-size: 0.9em; color: #666; text-transform: uppercase;">Email</strong>
+                    <a href="mailto:{{email}}" style="color: #0000ee; text-decoration: none; border-bottom: 1px solid #0000ee;">{{email}}</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-top: 15px;">
+                    <strong style="display: block; font-size: 0.9em; color: #666; text-transform: uppercase; margin-bottom: 10px;">Message</strong>
+                    <div style="background-color: #f9f9f9; border-left: 3px solid #1a1a1a; padding: 15px; margin: 0; white-space: pre-wrap;">{{message}}</div>
+                </td>
+            </tr>
+        </table>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="mailto:{{email}}?subject=Re:%20Your%20Contact%20Form%20Message" style="display: inline-block; font-family: 'Courier New', Courier, monospace; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 12px 25px; font-weight: bold; border: 1px solid #1a1a1a;">
+                Reply to {{name}}
+            </a>
+        </div>
+
+    </div>
+
+</body>
+</html>

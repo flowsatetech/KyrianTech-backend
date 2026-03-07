@@ -54,6 +54,8 @@ app.use((req, res, next) => {
         '/api/auth/signup',
         '/api/auth/google',
         '/api/products/filter',
+        '/api/auth/forgot_password',
+        '/^\/api\/auth\/magic_link\/[^/]+$/',
         /^\/api\/[^/]+\/info$/
     ];
 
@@ -100,6 +102,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+app.use(middlewares.checkBlacklist);
 
 /** ROUTERS
  * All routers are created here

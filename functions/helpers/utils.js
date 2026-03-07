@@ -1,4 +1,8 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const escapeHtml = require('escape-html');
+
 
 function generateToken(length = 16) {
     return crypto.randomBytes(length).toString('hex');
@@ -48,4 +52,15 @@ function slugify(str) {
     .replace(/-+/g, "-");
 }
 
-module.exports = { generateToken, isEmpty, handleAuthFailure, slugify, isValidPhone }
+function fillTemplate(templateName, data) {
+  let filledTemplate = fs.readFileSync(path.join(__dirname, 'templates', `${templateName}.html`), 'utf8');
+  
+  for (const [key, value] of Object.entries(data)) {
+    const safeValue = escapeHtml(String(value));
+    filledTemplate = filledTemplate.replaceAll(`{{${key}}}`, safeValue);
+  }
+  
+  return filledTemplate;
+}
+
+module.exports = { generateToken, isEmpty, handleAuthFailure, slugify, isValidPhone, fillTemplate }
