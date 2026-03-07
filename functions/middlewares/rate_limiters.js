@@ -3,8 +3,9 @@ const { ipKeyGenerator } = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const redisClient = require('./utils/redis_client');
 
-const createStore = () => new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args)
+const createStore = (prefixName) => new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: prefixName
 });
 
 const keyGenerator = (req) => {
@@ -17,14 +18,14 @@ const keyGenerator = (req) => {
 const signup = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5, 
-    store: createStore(),
+    store: createStore('rl:signup:'),
     message: { success: false, message: 'Too many accounts created from this IP. Please try again later.' }
 });
 
 const authLogin = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
-    store: createStore(),
+    store: createStore('rl:authLogin:'),
     keyGenerator: (req) => {
         const email = req.body?.email || ''; 
         return `login_${email}`;
@@ -35,7 +36,7 @@ const authLogin = rateLimit({
 const authLoginIp = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
-    store: createStore(),
+    store: createStore('rl:authLoginIp:'),
     keyGenerator: (req) => {
         return `login_${ipKeyGenerator(req.ip)}`;
     },
@@ -45,7 +46,7 @@ const authLoginIp = rateLimit({
 const profile = rateLimit({
     windowMs: 30 * 60 * 1000,
     max: 20,
-    store: createStore(),
+    store: createStore('rl:profile:'),
     keyGenerator,
     message: { success: false, message: 'Too many requests. Please slow down.' }
 });
@@ -53,22 +54,15 @@ const profile = rateLimit({
 const cart = rateLimit({
     windowMs: 60 * 1000,
     max: 60,
-    store: createStore(),
+    store: createStore('rl:cart:'),
     keyGenerator,
     message: { success: false, message: 'Cart update limit reached. Please wait a moment.' }
-});
-
-const googleAuth = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10, 
-    store: createStore(),
-    message: { success: false, message: 'Too many Google sign-in attempts. Please wait.' }
 });
 
 const logout = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 20,
-    store: createStore(),
+    store: createStore('rl:logout:'),
     keyGenerator,
     message: { success: false, message: 'Too many logout attempts.' }
 });
@@ -76,18 +70,32 @@ const logout = rateLimit({
 const products = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
+    store: createStore('rl:products:'),
+    keyGenerator,
     message: { success: false, message: 'Too many requests.' }
+});
+
+const reach_out = rateLimit({
+    windowMs: 5 * 60 * 60 * 1000,
+    max: 2,
+    store: createStore('rl:reach_out:'),
+    keyGenerator,
+    message: { success: false, message: 'You hit 404 too many times.' }
 });
 
 const fourzerofour = rateLimit({
     windowMs: 5 * 60 * 60 * 1000,
     max: 3,
+    store: createStore('rl:404:'),
+    keyGenerator,
     message: { success: false, message: 'You hit 404 too many times.' }
 });
 
 const health = rateLimit({
     windowMs: 60 * 1000,
     max: 10,
+    store: createStore('rl:health:'),
+    keyGenerator,
     message: { success: false, message: 'Too many health checks.' }
 });
 
@@ -99,8 +107,8 @@ module.exports = {
     health,
     profile,
     cart,
-    googleAuth,
     logout,
+    reach_out,
 
     fourzerofour
 };
