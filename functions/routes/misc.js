@@ -32,7 +32,7 @@ router.get('/debug-ratelimit', (req, res) => {
         cloudflare_ip: req.headers['cf-connecting-ip'] || 'None',
 		render_ip: req.headers['true-client-ip'] || 'None',
         x_forwarded: req.headers['x-forwarded-for'] || 'None',
-        redis_status: redisClient.isReady ? 'CONNECTED' : 'DISCONNECTED' 
+        redis_status: redis.isReady ? 'CONNECTED' : 'DISCONNECTED' 
     });
 });
 
