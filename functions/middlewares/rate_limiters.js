@@ -58,7 +58,9 @@ const profile = rateLimit({
     windowMs: 30 * 60 * 1000,
     max: 20,
     store: createStore('rl:profile:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `profile_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Too many requests. Please slow down.' }
 });
 
@@ -66,7 +68,9 @@ const cart = rateLimit({
     windowMs: 60 * 1000,
     max: 60,
     store: createStore('rl:cart:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `cart_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Cart update limit reached. Please wait a moment.' }
 });
 
@@ -74,7 +78,9 @@ const logout = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 20,
     store: createStore('rl:logout:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `logout_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Too many logout attempts.' }
 });
 
@@ -82,7 +88,9 @@ const products = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
     store: createStore('rl:products:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `products_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Too many requests.' }
 });
 
@@ -90,7 +98,9 @@ const reach_out = rateLimit({
     windowMs: 5 * 60 * 60 * 1000,
     max: 2,
     store: createStore('rl:reach_out:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `reach_out_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'You hit 404 too many times.' }
 });
 
@@ -98,7 +108,9 @@ const fourzerofour = rateLimit({
     windowMs: 5 * 60 * 60 * 1000,
     max: 3,
     store: createStore('rl:404:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `404_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Suspicious activity detected. You have been blocked.' },
     
     handler: async (req, res, next, options) => {
@@ -115,7 +127,9 @@ const health = rateLimit({
     windowMs: 60 * 1000,
     max: 10,
     store: createStore('rl:health:'),
-    keyGenerator,
+    keyGenerator: (req) => {
+        return `health_${ipKeyGenerator(req.ip)}`;
+    },
     message: { success: false, message: 'Too many health checks.' }
 });
 
