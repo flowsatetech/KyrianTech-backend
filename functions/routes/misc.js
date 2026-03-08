@@ -26,10 +26,11 @@ router.get('/health', rateLimiters.health, (req, res) => {
 	});
 });
 
-app.get('/debug-ratelimit', (req, res) => {
+router.get('/debug-ratelimit', (req, res) => {
     res.json({
         express_ip: req.ip,
         cloudflare_ip: req.headers['cf-connecting-ip'] || 'None',
+		render_ip: req.headers['true-client-ip'] || 'None',
         x_forwarded: req.headers['x-forwarded-for'] || 'None',
         redis_status: redisClient.isReady ? 'CONNECTED' : 'DISCONNECTED' 
     });

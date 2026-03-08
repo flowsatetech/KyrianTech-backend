@@ -13,7 +13,7 @@ const keyGenerator = (req) => {
     if (req.user && req.user.userId) {
         return `user_${req.user.userId}`;
     }
-    return `ip_${ipKeyGenerator(req.ip)}`;
+    return `ip_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
 };
 
 const signup = rateLimit({
@@ -39,7 +39,7 @@ const authLoginIp = rateLimit({
     max: 5,
     store: createStore('rl:authLoginIp:'),
     keyGenerator: (req) => {
-        return `login_${ipKeyGenerator(req.ip)}`;
+        return `login_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many login attempts. Please try again later.' }
 });
@@ -49,7 +49,7 @@ const forgot_password = rateLimit({
     max: 2,
     store: createStore('rl:forgotPassword:'),
     keyGenerator: (req) => {
-        return `login_${ipKeyGenerator(req.ip)}`;
+        return `login_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many password reset attempts. Please try again later.' }
 });
@@ -59,7 +59,7 @@ const profile = rateLimit({
     max: 20,
     store: createStore('rl:profile:'),
     keyGenerator: (req) => {
-        return `profile_${ipKeyGenerator(req.ip)}`;
+        return `profile_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many requests. Please slow down.' }
 });
@@ -69,7 +69,7 @@ const cart = rateLimit({
     max: 60,
     store: createStore('rl:cart:'),
     keyGenerator: (req) => {
-        return `cart_${ipKeyGenerator(req.ip)}`;
+        return `cart_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Cart update limit reached. Please wait a moment.' }
 });
@@ -79,7 +79,7 @@ const logout = rateLimit({
     max: 20,
     store: createStore('rl:logout:'),
     keyGenerator: (req) => {
-        return `logout_${ipKeyGenerator(req.ip)}`;
+        return `logout_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many logout attempts.' }
 });
@@ -89,7 +89,7 @@ const products = rateLimit({
     max: 30,
     store: createStore('rl:products:'),
     keyGenerator: (req) => {
-        return `products_${ipKeyGenerator(req.ip)}`;
+        return `products_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many requests.' }
 });
@@ -99,7 +99,7 @@ const reach_out = rateLimit({
     max: 2,
     store: createStore('rl:reach_out:'),
     keyGenerator: (req) => {
-        return `reach_out_${ipKeyGenerator(req.ip)}`;
+        return `reach_out_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'You hit 404 too many times.' }
 });
@@ -109,13 +109,13 @@ const fourzerofour = rateLimit({
     max: 3,
     store: createStore('rl:404:'),
     keyGenerator: (req) => {
-        return `404_${ipKeyGenerator(req.ip)}`;
+        return `404_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Suspicious activity detected. You have been blocked.' },
     
     handler: async (req, res, next, options) => {
         try {
-            await redisClient.setEx(`blacklist_ip_${ipKeyGenerator(req.ip)}`, 18000, 'true');
+            await redisClient.setEx(`blacklist_ip_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`, 18000, 'true');
         } catch (err) {
             logger('BLACKLIST').error('Redis blacklist error:', err);
         }
@@ -128,7 +128,7 @@ const health = rateLimit({
     max: 10,
     store: createStore('rl:health:'),
     keyGenerator: (req) => {
-        return `health_${ipKeyGenerator(req.ip)}`;
+        return `health_${ipKeyGenerator(req.headers['true-client-ip'] || req.ip)}`;
     },
     message: { success: false, message: 'Too many health checks.' }
 });
