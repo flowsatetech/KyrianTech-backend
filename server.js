@@ -55,7 +55,7 @@ app.use((req, res, next) => {
         '/api/auth/google',
         '/api/products/filter',
         '/api/auth/forgot_password',
-        '/^\/api\/auth\/magic_link\/[^/]+$/',
+        /^\/api\/auth\/magic_link\/[^/]+$/,
         /^\/api\/[^/]+\/info$/
     ];
 

@@ -26,7 +26,7 @@ router.get('/', rateLimiters.fourzerofour, (req, res) => {
 
 router.use(rateLimiters.fourzerofour, (req, res) => {
   if(req.originalUrl !== '/favicon.ico') {
-    logger('404').info(req.originalUrl);
+    logger('404').info(req.ip, req.originalUrl);
   }
   res.status(404).json({
     status: 'error',
