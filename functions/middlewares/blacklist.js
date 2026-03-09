@@ -4,7 +4,7 @@ const redisClient = require('./utils/redis_client');
 
 const checkBlacklist = async (req, res, next) => {
     try {
-        const targetIp = ipKeyGenerator(req.ip);
+        const targetIp = ipKeyGenerator(req.headers['true-client-ip'] || req.headers['cf-connecting-ip'] || req.ip);
         const isBlocked = await redisClient.get(`blacklist_ip_${targetIp}`);
         
         if (isBlocked) {

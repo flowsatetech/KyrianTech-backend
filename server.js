@@ -102,7 +102,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
-app.use(middlewares.checkBlacklist);
+app.use(middlewares.checkBlacklist, middlewares.rateLimiters.globalLimiter);
 
 /** ROUTERS
  * All routers are created here
