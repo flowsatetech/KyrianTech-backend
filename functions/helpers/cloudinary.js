@@ -12,7 +12,7 @@ const logger = require('../helpers/logger');
  * All settings for imports are here
  */
 cloudinary.config({
-    cloud_name: 'dfxdlvs0a',
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
